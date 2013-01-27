@@ -84,7 +84,11 @@
         // jsonify progress
         if (progress.length > 1) {
           for (var i = progress.length - 1; i >= 0; i--) {
-            progress[i] = JSON.parse(progress[i]);
+            try {
+              progress[i] = JSON.parse(progress[i]);
+            } catch (error) {
+              console.log(i, error);
+            }
           };
         } else {
           progress = [];
@@ -118,7 +122,7 @@
 
               setTimeout(function() {
                 // wait after query limit and then restart
-                loadDataToMap($('#feed-data').val());
+                loadDataToMap($('#feed-data').val(), $('#results').val());
               }, Math.random() * 60000) + 90000;
             }
             });
@@ -141,7 +145,7 @@
         for (var i = index; i < data.length; i++) {
           var r = JSON.parse(data[i]).reference;
           if (isAlreadyScanned(r)) {
-            console.log("Skipping " + i);
+            // console.log("Skipping " + i);
           } else {
             getPlaceDetails(loopCount, i, r);
             loopCount++;      
@@ -172,7 +176,7 @@
         console.log('results ' + results.length);
         for (var i = 0, result; result = results[i]; i++) {
           if (!places[result.geometry.location.lat() + ":" + result.geometry.location.lng()]) {
-           places[result.geometry.location.lat() + ":" + result.geometry.location.lng()] = result;
+            places[result.geometry.location.lat() + ":" + result.geometry.location.lng()] = result;
           //  createMarker(result);
           }
         }
