@@ -31,6 +31,16 @@
           new google.maps.LatLng(60.88770, -0.83496) 
         );
 
+        // load up data and progress
+        $.get('data/all.txt', function(data) {
+          console.log("load-feed-data");
+          $('#feed-data').val(data);
+        });
+
+        $.get('data/progress.txt', function(data) {
+          console.log("load-result-data");
+          $('#results').val(data);
+        });
 
         map = new google.maps.Map(document.getElementById('map_canvas'), {
           mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -62,31 +72,81 @@
         $('#keyword').val(keyword);
         $('#search').click(function() {performSearch()});
         $('#load-feed-data').click(function() {
-          loadDataToMap($('#feed-data').val())
+          loadDataToMap($('#feed-data').val(), $('#results').val());
         });
       }
 
-      function loadDataToMap(data) {
+      function loadDataToMap(data, progress) {
         data = data.split("\n");
+        progress = progress.split("\n");
+
+
+        // jsonify progress
+        if (progress.length > 1) {
+          for (var i = progress.length - 1; i >= 0; i--) {
+            progress[i] = JSON.parse(progress[i]);
+          };
+        } else {
+          progress = [];
+        }
+
+        $('#status').text("parsed " + progress.length + " of " + data.length);
+
         console.log(data.length);
-        
-        // for (var i = 3 - 1; i >= 0; i--) {
-        for (var i = data.length - 1; i >= 0; i--) {
-          var d = JSON.parse(data[i]);
-          var marker = new google.maps.Marker({
-            map: map,
-            position: new google.maps.LatLng(d.geometry.location.Za, d.geometry.location.$a),
-            icon: {
-              // Star
-              path: 'M 0,-24 6,-7 24,-7 10,4 15,21 0,11 -15,21 -10,4 -24,-7 -6,-7 z',
-              fillColor: '#ffff00',
-              fillOpacity: 1,
-              scale: 1/4,
-              strokeColor: '#bd8d2c',
-              strokeWeight: 1
+        var stop = false
+        var getPlaceDetails = function (start, index, reference) {
+          var timeout = (850 * start);
+          // console.log('parsing ' + index + ' in ' + timeout);
+          setTimeout(function() {
+            if (stop) return;
+            service.getDetails({reference: reference}, function(result, status) {
+            // console.log(index);
+            if (status == google.maps.places.PlacesServiceStatus.OK) {
+              $('#status').text("retrieved to index " + index);
+              var d = {};
+              d.name = result.name;
+              d.reference = reference;
+              d.geometry = result.geometry;
+              d.formatted_address = result.formatted_address;
+              $('#results').val($('#results').val() + "\n" + JSON.stringify(d));
+              $('#new-results').val($('#new-results').val() + "\n" + JSON.stringify(d));
+            } else {
+              console.log(status, result);
+              $('#error-data').val($('#error-data').val() + "\n" + reference);
+              $('#loop-index').val(index - 1);
+              stop = true;
+
+              setTimeout(function() {
+                // wait after query limit and then restart
+                loadDataToMap($('#feed-data').val());
+              }, Math.random() * 60000) + 90000;
             }
-          });
-        };
+            });
+          }, timeout);
+        }
+
+        var isAlreadyScanned = function (reference) {
+          for (var i = progress.length - 1; i >= 0; i--) {
+            if (progress[i].reference == reference) {
+              return true;
+            } 
+          };
+          return false;
+        }
+
+        // for (var i = 3 - 1; i >= 0; i--) {
+        var index = parseInt($('#loop-index').val());
+        var loopCount = 0;
+        // var index = 0;
+        for (var i = index; i < data.length; i++) {
+          var r = JSON.parse(data[i]).reference;
+          if (isAlreadyScanned(r)) {
+            console.log("Skipping " + i);
+          } else {
+            getPlaceDetails(loopCount, i, r);
+            loopCount++;      
+          }
+        }  
       }
 
       function performSearch() {
@@ -194,7 +254,7 @@
       <input type="text" id="keyword"></input>
       <input type="submit" id="search" value="Search"></input>
     </div>
-    <div><span id="status"></span><textarea id="results"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
+    <div><span id="status"></span><input type="text" id="loop-index" value="0"></input><textarea id="results"></textarea><textarea id="new-results"></textarea><textarea id="error-data"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
 
     <div id="map_canvas"></div>
   </body>

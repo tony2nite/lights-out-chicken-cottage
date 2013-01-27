@@ -17,3 +17,7 @@ html, body {
     height: 650px;
   }
 }
+
+#error-data {
+  color: red;
+}
