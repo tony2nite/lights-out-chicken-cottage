@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Google Maps JavaScript API v3 Example: Place Radar Search</title>
+    <link href="default.css" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?sensor=false&libraries=places,visualization&v=3.exp"></script>
+    <script src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+    <script>
+      var map;
+      var infoWindow;
+      var service;
+      var position = {lat: 51.507335, lng: -0.127683};
+      var places = [];
+      var keyword = "fried chicken";
+      var row = null;
+      var rowCount = 83;
+      var columnCount = 11;
+      var colum = null;
+
+      var SEARCH_BOUNDS;
+
+      function initialize() {
+        var SEARCH_START_SOUTH_WEST = new google.maps.LatLng(49.90878, -7.69042);
+        // var SEARCH_START_SOUTH_WEST = new google.maps.LatLng(51.507335, -0.127683); // london
+        // var SEARCH_START_SOUTH_WEST = new google.maps.LatLng(51.507335,  -7.69042); // london latitude
+       
+        SEARCH_BOUNDS = new google.maps.LatLngBounds(
+          SEARCH_START_SOUTH_WEST,
+          new google.maps.LatLng(60.88770, -0.83496) 
+        );
+
+
+        map = new google.maps.Map(document.getElementById('map_canvas'), {
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          center: SEARCH_START_SOUTH_WEST,
+          zoom: 12,
+          styles: [
+            {
+              stylers: [
+                { visibility: 'simplified' }
+              ]
+            },
+            {
+              elementType: 'labels',
+              stylers: [
+                { visibility: 'off' }
+              ]
+            }
+          ]
+        });
+
+        infoWindow = new google.maps.InfoWindow();
+        service = new google.maps.places.PlacesService(map);
+
+        google.maps.event.addListener(map, 'dragend', function() {
+          console.log("bounds_changed: zoom=" + map.zoom);
+          // performSearch();
+        });
+
+        $('#keyword').val(keyword);
+        $('#search').click(function() {performSearch()});
+        $('#load-feed-data').click(function() {
+          loadDataToMap($('#feed-data').val())
+        });
+      }
+
+      function loadDataToMap(data) {
+        data = data.split("\n");
+        console.log(data.length);
+        
+        // for (var i = 3 - 1; i >= 0; i--) {
+        for (var i = data.length - 1; i >= 0; i--) {
+          var d = JSON.parse(data[i]);
+          var marker = new google.maps.Marker({
+            map: map,
+            position: new google.maps.LatLng(d.geometry.location.Za, d.geometry.location.$a),
+            icon: {
+              // Star
+              path: 'M 0,-24 6,-7 24,-7 10,4 15,21 0,11 -15,21 -10,4 -24,-7 -6,-7 z',
+              fillColor: '#ffff00',
+              fillOpacity: 1,
+              scale: 1/4,
+              strokeColor: '#bd8d2c',
+              strokeWeight: 1
+            }
+          });
+        };
+      }
+
+      function performSearch() {
+        console.log('performSearch');
+        var request = {
+          bounds: map.getBounds(),
+          keyword: keyword,
+          type: 'food'
+        };
+        service.radarSearch(request, callback);
+
+        var rectangle = new google.maps.Rectangle({
+          map: map
+        });
+        rectangle.setBounds(map.getBounds());
+     }
+
+      function callback(results, status) {
+        if (status != google.maps.places.PlacesServiceStatus.OK) {
+          console.log(status);
+        }
+
+        console.log('results ' + results.length);
+        for (var i = 0, result; result = results[i]; i++) {
+          if (!places[result.geometry.location.lat() + ":" + result.geometry.location.lng()]) {
+           places[result.geometry.location.lat() + ":" + result.geometry.location.lng()] = result;
+          //  createMarker(result);
+          }
+        }
+
+        var total = 0;
+        var results = "";
+        for (var p in places) {
+          total++;
+          results = results + "\n" + JSON.stringify(places[p]);
+        }
+ 
+        $('#status').text(total + " found");
+        $('#results').val(results);
+
+        var COLUMN_COUNT_MAX = 22;
+        if (columnCount == COLUMN_COUNT_MAX && rowCount < 200) {
+          rowCount++;
+          columnCount = 0;
+        }
+ 
+        // get more
+        if (columnCount < COLUMN_COUNT_MAX) {
+          columnCount++;
+
+
+          var mapBounds = map.getBounds();
+          if (row == null){
+            console.log('here');
+            row = new google.maps.LatLngBounds(
+              new google.maps.LatLng(mapBounds.getSouthWest().lat(), mapBounds.getSouthWest().lng()),
+              new google.maps.LatLng(mapBounds.getNorthEast().lat(), mapBounds.getNorthEast().lng())
+            );
+          }
+          console.log(row.getSouthWest().lat());
+          var HORIZONTAL_MOVEMENT = (mapBounds.getNorthEast().lng() - mapBounds.getSouthWest().lng() - 0.01) * columnCount;
+          var VERTICAL_MOVEMENT = (mapBounds.getNorthEast().lat() - mapBounds.getSouthWest().lat() - 0.002) * rowCount;
+          var newBounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(row.getSouthWest().lat() + VERTICAL_MOVEMENT, row.getSouthWest().lng() + HORIZONTAL_MOVEMENT),
+            new google.maps.LatLng(row.getNorthEast().lat() + VERTICAL_MOVEMENT, row.getNorthEast().lng() + HORIZONTAL_MOVEMENT)
+          );
+           map.panToBounds(newBounds);
+          // map.setCenter(google.maps.LatLng(row.getSouthWest().lat(), SEARCH_BOUNDS.getSouthWest().lng() + MOVEMENT));
+          setTimeout(function () {performSearch()}, Math.random() * 3000 + 1500);
+        }
+      }
+
+      function createMarker(place) {
+       var marker = new google.maps.Marker({
+          map: map,
+          position: place.geometry.location,
+          icon: {
+            // Star
+            path: 'M 0,-24 6,-7 24,-7 10,4 15,21 0,11 -15,21 -10,4 -24,-7 -6,-7 z',
+            fillColor: '#ffff00',
+            fillOpacity: 1,
+            scale: 1/4,
+            strokeColor: '#bd8d2c',
+            strokeWeight: 1
+          }
+        });
+
+        google.maps.event.addListener(marker, 'click', function() {
+          service.getDetails(place, function(result, status) {
+            if (status != google.maps.places.PlacesServiceStatus.OK) {
+              // alert(status);
+              return;
+            }
+            infoWindow.setContent(result.name);
+            infoWindow.open(map, marker);
+          });
+        });
+      }
+
+      google.maps.event.addDomListener(window, 'load', initialize);
+    </script>
+  </head>
+  <body>
+    <div id="controls">
+      <input type="text" id="keyword"></input>
+      <input type="submit" id="search" value="Search"></input>
+    </div>
+    <div><span id="status"></span><textarea id="results"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
+
+    <div id="map_canvas"></div>
+  </body>
+</html>
