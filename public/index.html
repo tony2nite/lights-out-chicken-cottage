@@ -32,12 +32,12 @@
         );
 
         // load up data and progress
-        $.get('data/all.txt', function(data) {
+        $.get('data/radar.txt', function(data) {
           console.log("load-feed-data");
           $('#feed-data').val(data);
         });
 
-        $.get('data/progress.txt', function(data) {
+        $.get('data/places.txt', function(data) {
           console.log("load-result-data");
           $('#results').val(data);
         });
@@ -71,9 +71,34 @@
 
         $('#keyword').val(keyword);
         $('#search').click(function() {performSearch()});
+        $('#clean-data').click(function() {cleanData($('#results').val())});
         $('#load-feed-data').click(function() {
           loadDataToMap($('#feed-data').val(), $('#results').val());
         });
+      }
+
+      function cleanData(data) {
+        data = data.split("\n");
+        var clean = "";
+        var cleanCount = 0;
+        var dupes = {};
+        for (var i = 0; i < data.length; i++) {
+          try {
+            var j = JSON.parse(data[i]);
+            var r = j.reference;
+            if (dupes[r] != true) {
+              dupes[r] = true;
+              clean = clean + data[i] + "\n";
+              cleanCount++;
+            } else {
+              console.log('dupe ' + r);
+            }
+          } catch (error) {
+            console.log(i, error);
+          }
+        };
+        console.log(cleanCount + " versus " + data.length);
+        $('#new-results').val(clean);
       }
 
       function loadDataToMap(data, progress) {
@@ -258,7 +283,7 @@
       <input type="text" id="keyword"></input>
       <input type="submit" id="search" value="Search"></input>
     </div>
-    <div><span id="status"></span><input type="text" id="loop-index" value="0"></input><textarea id="results"></textarea><textarea id="new-results"></textarea><textarea id="error-data"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
+    <div><span id="status"></span><input type="text" id="loop-index" value="0"></input><textarea id="results"></textarea><input type="submit" id="clean-data" value="Clean Data"></input><textarea id="new-results"></textarea><textarea id="error-data"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
 
     <div id="map_canvas"></div>
   </body>
