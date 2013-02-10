@@ -72,9 +72,42 @@
         $('#keyword').val(keyword);
         $('#search').click(function() {performSearch()});
         $('#clean-data').click(function() {cleanData($('#results').val())});
+        $('#csv-data').click(function() {csvData($('#results').val())});
+        $('#filter-data').click(function() {filterData($('#results').val())});
         $('#load-feed-data').click(function() {
           loadDataToMap($('#feed-data').val(), $('#results').val());
         });
+      }
+
+      function filterData (data) {
+        var SEARCH_TERMS = [new RegExp(".*chicken.*", "i"), new RegExp(".*fc.*", "i"), new RegExp(".*f c.*", "i")];
+        var filter = "";
+
+        data = data.split("\n");
+
+        for (var i = SEARCH_TERMS.length - 1; i >= 0; i--) {
+          for (var j = data.length - 1; j >= 0; j--) {
+            var json = JSON.parse(data[j]);
+            if (json.name.match(SEARCH_TERMS[i]) != null) {
+              filter = filter + data[j] + "\n";
+              json.geometry.location = new google.maps.LatLng(json.geometry.location.Za, json.geometry.location.$a);
+              createMarker(json);
+            }
+          };
+        };
+        $('#new-results').val(filter);
+      }
+
+      function csvData(data) {
+        // {"name":"The Eilean Dubh","reference":"CnRtAAAAmU3Jaw-eQUZhSgeBM6QgR9Icm0GOV52QydGe9dFAo4Hf4XtQuKy-OdT0Vk31jUMzC7a79lwsdAl5tltXRaIipsqTD9QCX3ZLHh1BJY8ZTfXcB7La17RBHo7kDvzGtYNNRP43wRxMmxkkVVf4jUvkEBIQEUnnH7P-k_DnUWkvgtZQjBoUhvJAoUkiizvidnq3wqHmF94mu6I","geometry":{"location":{"Za":57.580474,"$a":-4.133311000000049}},"formatted_address":"18 High Street, Fortrose, United Kingdom"}
+        data = data.split("\n");
+        var csv = "name,reference,lat,lng,address\n";
+        for (var i = 0; i < data.length; i++) {
+          var j = JSON.parse(data[i]);
+          var c = ['"' + j.name + '"', j.reference, j.geometry.location.Za, j.geometry.location.$a];
+          csv = csv + c.join(",") + ",\"" + j.formatted_address + "\"\n";
+        };
+        $('#new-results').val(csv);
       }
 
       function cleanData(data) {
@@ -265,6 +298,7 @@
 
         google.maps.event.addListener(marker, 'click', function() {
           service.getDetails(place, function(result, status) {
+            console.log(result);
             if (status != google.maps.places.PlacesServiceStatus.OK) {
               // alert(status);
               return;
@@ -283,7 +317,7 @@
       <input type="text" id="keyword"></input>
       <input type="submit" id="search" value="Search"></input>
     </div>
-    <div><span id="status"></span><input type="text" id="loop-index" value="0"></input><textarea id="results"></textarea><input type="submit" id="clean-data" value="Clean Data"></input><textarea id="new-results"></textarea><textarea id="error-data"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
+    <div><span id="status"></span><input type="text" id="loop-index" value="0"></input><textarea id="results"></textarea><input type="submit" id="clean-data" value="Clean Data"></input><input type="submit" id="csv-data" value="CSV"></input><input type="submit" id="filter-data" value="Filter"></input><textarea id="new-results"></textarea><textarea id="error-data"></textarea><textarea id="feed-data"></textarea><input type="submit" id="load-feed-data" value="Load"></input></div></div>
 
     <div id="map_canvas"></div>
   </body>
