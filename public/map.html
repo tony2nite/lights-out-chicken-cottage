@@ -92,8 +92,6 @@
 				return new google.maps.LatLng(lat, lng);
 			};
 
-			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
-
 			var container, stats;
 			var camera, scene, renderer, particles, geometry, material, i, h, color, colors = [], sprite, size, fov = 70;
 			var mouseX = 0, mouseY = 0;
@@ -105,6 +103,8 @@
 			$(document).ready(
 				function () {
 			        // load up data and progress
+					if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
 			        $.get('data/filtered.txt', function(data) {
           			  init(data.split("\n"));
 					  animate();
@@ -113,7 +113,6 @@
 			);
 
 			function init(data) {
-
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
