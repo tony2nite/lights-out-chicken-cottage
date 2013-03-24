@@ -2,6 +2,7 @@
 <html lang="en">
 	<head>
 		<title>Lights Out: Chicken Cottage</title>
+		<!-- Based on Three.js "webgl particle billboards colors example" -->
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -119,7 +120,7 @@
 				clock = new THREE.Clock();
 
 				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 50, 1e7 );
-				camera.position.z = 1000;
+				camera.position.z = 2500;
 
 
 				controls = new THREE.FlyControls( camera );
@@ -131,7 +132,7 @@
 
 
 				scene = new THREE.Scene();
-				scene.fog = new THREE.FogExp2( 0x000000, 0.0009 );
+				// scene.fog = new THREE.FogExp2( 0x000000, 0.0009 );
 
 				geometry = new THREE.Geometry();
 
