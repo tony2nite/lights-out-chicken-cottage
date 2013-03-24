@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgl - particles - billboards - colors</title>
+		<title>Lights Out: Chicken Cottage</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
@@ -39,7 +39,7 @@
 		</div>
 
 		<script src="js/three.js"></script>
-
+	    <script src="js/libs/FlyControls.js"></script>
 		<script src="js/Detector.js"></script>
 		<!--<script src="js/libs/stats.min.js"></script>-->
 
@@ -79,7 +79,7 @@
 				// 89.189.  This is about a third of a tile past the edge of the world
 				// tile.
 				var siny = bound(Math.sin(degreesToRadians(latLng.lat())), -0.9999, 0.9999);
-				point.y = origin.y + 0.5 * Math.log((1 + siny) / (1 - siny)) * -me.pixelsPerLonRadian_;
+				point.y = origin.y + 0.5 * Math.log((1 + siny) / (1 - siny)) * me.pixelsPerLonRadian_;
 				return point;
 			};
 
@@ -93,7 +93,7 @@
 			};
 
 			var container, stats;
-			var camera, scene, renderer, particles, geometry, material, i, h, color, colors = [], sprite, size, fov = 70;
+			var camera, controls, scene, clock, renderer, particles, geometry, material, i, h, color, colors = [], sprite, size, fov = 70;
 			var mouseX = 0, mouseY = 0;
 
 			var windowHalfX = window.innerWidth / 2;
@@ -116,18 +116,22 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 
-				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, -1000, 1000 );
+				clock = new THREE.Clock();
+
+				camera = new THREE.PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 50, 1e7 );
 				camera.position.z = 1000;
 
-				var ZOOM = 17;
-  				var scale = Math.pow(2, ZOOM);
-  	
-				camera.scale.x = window.innerWidth / 256 / scale;
-				camera.scale.y = window.innerHeight / 256 / scale;
-				camera.scale.y = -camera.scale.x;
+
+				controls = new THREE.FlyControls( camera );
+				controls.movementSpeed = 1000;
+				controls.domElement = container;
+				controls.rollSpeed = Math.PI / 24;
+				controls.autoForward = false;
+				// controls.dragToLook = false;
+
 
 				scene = new THREE.Scene();
-				// scene.fog = new THREE.FogExp2( 0x000000, 0.0009 );
+				scene.fog = new THREE.FogExp2( 0x000000, 0.0009 );
 
 				geometry = new THREE.Geometry();
 
@@ -140,18 +144,20 @@
 				var getRandomArbitary = function (min, max) {
     				return Math.random() * (max - min) + min;
 				}
+
+				// looping through all of the point
 				for ( i = 0; i < n; i ++ ) {
 					var d = JSON.parse(data[i]);
 					var latlng =  new google.maps.LatLng(d.geometry.location.Za, d.geometry.location.$a);
 					var point = projection.fromLatLngToPoint(latlng);
 
 					var vertex = new THREE.Vector3();
-					vertex.x = point.x / 256;
-					vertex.y = point.y / 256;
+					vertex.x = point.x * 256;
+					vertex.y = point.y * 256;
+					console.log(vertex.y);
 					vertex.z = 0;
 
-				
-
+			
 					geometry.vertices.push( vertex );
 					bounds.left = Math.max(vertex.x, bounds.left);
 					bounds.right = Math.min(vertex.x, bounds.right);
@@ -189,58 +195,7 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
 
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
-				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
-
-				window.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false);
- 				window.addEventListener('mousewheel', onDocumentMouseWheel, false);
-
-
 				window.addEventListener( 'resize', onWindowResize, false );
-
-			}
-
-			function onDocumentMouseWheel( event ) {
-				console.log('scroll');
-				// WebKit
-
-				if ( event.wheelDeltaY ) {
-					fov -= event.wheelDeltaY * 0.05;
-				// Opera / Explorer 9
-				} else if ( event.wheelDelta ) {
-					fov -= event.wheelDelta * 0.05;
-				// Firefox
-				} else if ( event.detail ) {
-					fov += event.detail * 1.0;
-				}
-
-				camera.projectionMatrix.makePerspective( fov, window.innerWidth / window.innerHeight, -1000, 1000 );
-				render();
-			}
-
-			function onDocumentMouseMove( event ) {
-				mouseX = event.clientX - windowHalfX;
-				mouseY = event.clientY - windowHalfY;
-			}
-
-			function onDocumentTouchStart( event ) {
-				if ( event.touches.length === 1 ) {
-					event.preventDefault();
-
-					mouseX = event.touches[ 0 ].pageX - windowHalfX;
-					mouseY = event.touches[ 0 ].pageY - windowHalfY;
-				}
-			}
-
-			function onDocumentTouchMove( event ) {
-				if ( event.touches.length === 1 ) {
-					event.preventDefault();
-
-					mouseX = event.touches[ 0 ].pageX - windowHalfX;
-					mouseY = event.touches[ 0 ].pageY - windowHalfY;
-				}
 			}
 
 			function onWindowResize( event ) {
@@ -262,14 +217,15 @@
 			}
 
 			function render() {
-				// camera.position.x += ( mouseX - camera.position.x ) * 0.005;
-				// camera.position.y += ( - mouseY - camera.position.y ) * 0.005;
-
-				// camera.lookAt( origin );
-
-
 				// h = ( 360 * ( 1.0 + time ) % 360 ) / 360;
 				// material.color.setHSV( h, 0.8, 1.0 );
+				var delta = clock.getDelta();
+
+				// // slow down as we approach the surface
+				var d = camera.position.z;
+				controls.movementSpeed = d * 0.75;
+				controls.update( delta);
+
 
 				renderer.render( scene, camera );
 			}
